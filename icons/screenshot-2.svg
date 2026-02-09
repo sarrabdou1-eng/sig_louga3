@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720">
+  <defs>
+    <linearGradient id="bggrad2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0b61a4;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0d7bb8;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <rect width="1280" height="720" fill="url(#bggrad2)"/>
+  <rect x="20" y="15" width="350" height="690" rx="8" fill="#f5f7f9" opacity="0.95"/>
+  <rect x="380" y="15" width="880" height="690" rx="8" fill="white" opacity="0.95"/>
+  <text x="195" y="80" font-size="24" font-weight="bold" text-anchor="middle" fill="#0b61a4">Couches</text>
+  <rect x="35" y="100" width="320" height="200" rx="6" fill="#e8f2fb" opacity="0.5"/>
+  <text x="195" y="140" font-size="14" text-anchor="middle" fill="#333">Régions</text>
+  <text x="195" y="180" font-size="14" text-anchor="middle" fill="#333">Départements</text>
+  <text x="195" y="220" font-size="14" text-anchor="middle" fill="#333" opacity="0.6">Arrondissements</text>
+  <text x="820" y="80" font-size="32" font-weight="bold" text-anchor="middle" fill="#0b61a4">SIG LOUGA - Carte Interactive</text>
+  <circle cx="820" cy="350" r="120" fill="white" opacity="0.15"/>
+  <path d="M 820 260 L 870 330 L 950 330 L 890 380 L 930 470 L 820 410 L 710 470 L 750 380 L 690 330 L 770 330 Z" fill="white" stroke="white" stroke-width="3"/>
+  <text x="820" y="600" font-size="18" text-anchor="middle" fill="white">Foramtion de Louga</text>
+</svg>

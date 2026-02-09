@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192">
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0b61a4;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0d7bb8;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <rect width="192" height="192" fill="url(#grad)"/>
+  <circle cx="96" cy="96" r="70" fill="white" opacity="0.2"/>
+  <path d="M 96 40 L 120 80 L 150 80 L 130 105 L 140 150 L 96 120 L 52 150 L 62 105 L 42 80 L 72 80 Z" fill="white"/>
+  <circle cx="96" cy="96" r="45" fill="none" stroke="white" stroke-width="3" opacity="0.5"/>
+  <text x="96" y="170" font-size="12" font-weight="bold" text-anchor="middle" fill="white">LOUGA</text>
+</svg>

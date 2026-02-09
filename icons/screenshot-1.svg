@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 540 720">
+  <defs>
+    <linearGradient id="bggrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0b61a4;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0d7bb8;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <rect width="540" height="720" fill="url(#bggrad)"/>
+  <text x="270" y="60" font-size="36" font-weight="bold" text-anchor="middle" fill="white">SIG LOUGA</text>
+  <rect x="30" y="90" width="480" height="400" rx="12" fill="white" opacity="0.1" stroke="white" stroke-width="2"/>
+  <circle cx="270" cy="290" r="90" fill="white" opacity="0.2"/>
+  <path d="M 270 220 L 300 270 L 350 270 L 310 310 L 330 370 L 270 330 L 210 370 L 230 310 L 190 270 L 240 270 Z" fill="white" stroke="white" stroke-width="2"/>
+  <text x="270" y="520" font-size="20" text-anchor="middle" fill="white">Cartographie Interactive</text>
+  <text x="270" y="555" font-size="16" text-anchor="middle" fill="white" opacity="0.8">Région de Louga, Sénégal</text>
+  <g opacity="0.5">
+    <circle cx="60" cy="640" r="8" fill="white"/>
+    <circle cx="270" cy="640" r="8" fill="white"/>
+    <circle cx="480" cy="640" r="12" fill="white"/>
+  </g>
+</svg>

@@ -1,0 +1,1516 @@
+<!doctype html>
+<html lang="fr">
+    <head>
+        <meta charset="UTF-8"/>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=yes"/>
+        <meta name="theme-color" content="#0b61a4"/>
+        <meta name="description" content="Application mobile de cartographie interactive pour la région de Louga, Sénégal. Consultez les données géographiques, effectuez des requêtes spatiales et attributaires."/>
+        <meta name="keywords" content="Louga, SIG, Cartographie, Géolocalisation, Sénégal"/>
+        <meta name="apple-mobile-web-app-capable" content="yes"/>
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+        <meta name="apple-mobile-web-app-title" content="SIG Louga"/>
+        <link rel="apple-touch-icon" href="icons/icon-192.svg"/>
+        <link rel="manifest" href="manifest.json"/>
+        <link rel="icon" type="image/svg+xml" href="icons/icon-192.svg"/>
+        <link rel="stylesheet" href="css/leaflet.css">
+        <link rel="stylesheet" href="css/L.Control.Layers.Tree.css">
+        <link rel="stylesheet" href="css/L.Control.Locate.min.css">
+        <link rel="stylesheet" href="css/qgis2web.css">
+        <link rel="stylesheet" href="css/fontawesome-all.min.css">
+        <link rel="stylesheet" href="css/leaflet-search.css">
+        <link rel="stylesheet" href="css/leaflet.photon.css">
+        <link rel="stylesheet" href="css/leaflet-measure.css">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet-minimap/3.6.1/Control.MiniMap.min.css">
+        <link rel="stylesheet" href="css/custom.css">
+        <style>
+        #map {
+            width: 100%;
+            height: calc(100vh - 120px);
+        }
+        </style>
+        <title>SIG Louga - Cartographie Interactive</title>
+    </head>
+    <body>
+        <!-- PWA Installation prompt -->
+        <div id="pwa-prompt" class="pwa-install-prompt" style="display:none; position:fixed; bottom:20px; right:20px; background:white; border-radius:12px; padding:16px; box-shadow:0 8px 24px rgba(0,0,0,0.15); z-index:9999; max-width:300px; border-left:4px solid #0b61a4;">
+            <div style="font-weight:700; margin-bottom:8px; color:#0b61a4;"><i class="fas fa-download"></i> Installer l'app</div>
+            <p style="margin:0 0 12px 0; font-size:14px; color:#333;">Installez SIG Louga sur votre téléphone pour y accéder rapidement.</p>
+            <div style="display:flex; gap:8px;">
+                <button onclick="pwaInstall()" style="flex:1; padding:8px 12px; background:#0b61a4; color:white; border:none; border-radius:6px; cursor:pointer; font-weight:600;">Installer</button>
+                <button onclick="pwaDismiss()" style="flex:1; padding:8px 12px; background:#f0f0f0; color:#333; border:none; border-radius:6px; cursor:pointer;">Refuser</button>
+            </div>
+        </div>
+        <header class="topnav">
+            <div class="brand"><i class="fas fa-map"></i> SIG Louga</div>
+            <nav class="navmenus">
+                <a href="#" id="nav-home"><i class="fas fa-home"></i> Accueil</a>
+                <a href="#" id="nav-about"><i class="fas fa-info-circle"></i> A propos</a>
+                <a href="#" id="nav-catalog"><i class="fas fa-database"></i> Catalogue</a>
+                <a href="#" id="nav-spatial"><i class="fas fa-draw-polygon"></i> Requête spatiale</a>
+                <a href="#" id="nav-attribute"><i class="fas fa-filter"></i> Requête attr.</a>
+                <a href="#" id="nav-download"><i class="fas fa-download"></i> Télécharger</a>
+                <a href="#" id="nav-tools"><i class="fas fa-tools"></i> Outils</a>
+            </nav>
+            <button id="toggle-left" class="panel-toggle" title="Afficher/Masquer les couches"><i class="fas fa-bars"></i></button>
+        </header>
+
+        <div id="app">
+            <aside id="leftPanel" class="panel left">
+                <div class="panel-header"><i class="fas fa-layer-group"></i> Couches <button id="hide-left" class="hide-btn"><i class="fas fa-times"></i></button></div>
+                <div class="panel-body export-controls">
+                    <label for="layerExport"><i class="fas fa-download"></i> Exporter couche :</label>
+                    <select id="layerExport"><option value="">Toutes les couches</option></select>
+                    <div style="margin-top:8px; display:flex; gap:8px;">
+                        <button id="export-geojson-layer"><i class="fas fa-file"></i> GeoJSON</button>
+                        <button id="export-csv-layer"><i class="fas fa-table"></i> CSV</button>
+                    </div>
+                </div>
+                <div id="layersContainer" class="panel-body"></div>
+            </aside>
+
+            <main id="mapArea">
+                <div id="map"></div>
+            </main>
+
+            <aside id="rightPanel" class="panel right">
+                <div class="panel-header"><i class="fas fa-map"></i> Fonds & Légende <button id="hide-right" class="hide-btn"><i class="fas fa-times"></i></button></div>
+                <div id="basemapContainer" class="panel-body"></div>
+                <div id="legendContainer" class="panel-body"></div>
+            </aside>
+        </div>
+
+        <footer id="mapFooter">
+            <div class="footer-left">
+                <button id="btn-zoom-in" title="Zoomer avant"><i class="fas fa-plus"></i></button>
+                <button id="btn-zoom-out" title="Zoomer arrière"><i class="fas fa-minus"></i></button>
+                <button id="btn-reset-view" title="Double-cliquer pour revenir à la vue initiale"><i class="fas fa-redo"></i> Vue initiale</button>
+                <button id="btn-measure" title="Mesurer des distances"><i class="fas fa-ruler"></i></button>
+                <button id="btn-geolocation" title="Suivre ma position GPS"><i class="fas fa-location-dot"></i></button>
+                <button id="btn-print" title="Imprimer la carte"><i class="fas fa-print"></i></button>
+            </div>
+            <div class="footer-center">
+                <span id="coords"><i class="fas fa-crosshairs"></i> Lng: --, Lat: --</span>
+            </div>
+            <div class="footer-right">
+                <button id="download-geojson" title="Télécharger en format GeoJSON"><i class="fas fa-file-download"></i> GeoJSON</button>
+                <button id="download-csv" title="Télécharger en format CSV"><i class="fas fa-file-csv"></i> CSV</button>
+            </div>
+        </footer>
+
+        <!-- Modal Requête Spatiale -->
+        <div id="spatialQueryModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2><i class="fas fa-draw-polygon"></i> Requête Spatiale</h2>
+                    <button class="modal-close"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="modal-body">
+                    <p><i class="fas fa-info-circle"></i> Sélectionnez une méthode de requête spatiale :</p>
+                    <div class="query-options">
+                        <button id="spatial-buffer" class="query-btn"><i class="fas fa-expand"></i> Buffer/Zone d'influence</button>
+                        <button id="spatial-draw" class="query-btn"><i class="fas fa-pen"></i> Dessiner une zone</button>
+                        <button id="spatial-bbox" class="query-btn"><i class="fas fa-square"></i> Boîte englobante</button>
+                    </div>
+                    <hr/>
+                    <p><i class="fas fa-layer-group"></i> Couches à interroger :</p>
+                    <div id="spatialLayers" class="layer-checkboxes"></div>
+                </div>
+                <div class="modal-footer">
+                    <button id="spatial-submit" class="btn-primary">Exécuter requête</button>
+                    <button id="spatial-cancel" class="btn-secondary">Fermer</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Requête Attributaire -->
+        <div id="attributeQueryModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2><i class="fas fa-filter"></i> Requête Attributaire</h2>
+                    <button class="modal-close"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="modal-body">
+                    <p><i class="fas fa-info-circle"></i> Sélectionnez une couche et filtrez par attributs :</p>
+                    <div>
+                        <label for="attrLayer"><i class="fas fa-layer-group"></i> Couche :</label>
+                        <select id="attrLayer" style="width:100%; padding:8px; margin-bottom:12px; border-radius:6px; border:1px solid rgba(11,97,164,0.2);">
+                            <option value="">-- Choisir une couche --</option>
+                        </select>
+                    </div>
+                    <div id="attrFilters" style="display:none;">
+                        <label for="attrField"><i class="fas fa-columns"></i> Champ :</label>
+                        <select id="attrField" style="width:100%; padding:8px; margin-bottom:12px; border-radius:6px; border:1px solid rgba(11,97,164,0.2);">
+                            <option value="">-- Choisir un champ --</option>
+                        </select>
+                        <label for="attrOperator"><i class="fas fa-code"></i> Opérateur :</label>
+                        <select id="attrOperator" style="width:100%; padding:8px; margin-bottom:12px; border-radius:6px; border:1px solid rgba(11,97,164,0.2);">
+                            <option value="=">=</option>
+                            <option value="!=">!=</option>
+                            <option value=">">&gt;</option>
+                            <option value="<">&lt;</option>
+                            <option value="contains">contient</option>
+                        </select>
+                        <label for="attrValue"><i class="fas fa-pencil-alt"></i> Valeur :</label>
+                        <input id="attrValue" type="text" style="width:100%; padding:8px; margin-bottom:12px; border-radius:6px; border:1px solid rgba(11,97,164,0.2);" placeholder="Entrez la valeur"/>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button id="attr-submit" class="btn-primary">Exécuter requête</button>
+                    <button id="attr-cancel" class="btn-secondary">Fermer</button>
+                </div>
+            </div>
+        </div>
+
+        <script>
+        // Pre-Leaflet shim: suppress deprecation console messages from the start
+        (function(){
+            try{
+                var origError = console.error, origWarn = console.warn;
+                console.error = function(){
+                    var msg = Array.prototype.slice.call(arguments).join(' ');
+                    if(msg.indexOf('L.Mixin.Events') !== -1 || msg.indexOf('Deprecated include') !== -1){
+                        return;
+                    }
+                    return origError.apply(console, arguments);
+                };
+                console.warn = function(){
+                    var msg = Array.prototype.slice.call(arguments).join(' ');
+                    if(msg.indexOf('L.Mixin.Events') !== -1 || msg.indexOf('Deprecated include') !== -1){
+                        return;
+                    }
+                    return origWarn.apply(console, arguments);
+                };
+            }catch(e){}
+        })();
+        </script>
+        <script src="js/qgis2web_expressions.js"></script>
+        <script src="js/leaflet.js"></script>
+        <script>
+        // Post-Leaflet shim: ensure safe L.Mixin.Events and wrap Class.extend
+        (function(){
+            if(typeof window.L === 'undefined') return;
+            try{
+                if(!L.Mixin) L.Mixin = {};
+                if(L.Evented && L.Evented.prototype){
+                    L.Mixin.Events = L.Evented.prototype;
+                }
+                if(L.Class && typeof L.Class.extend === 'function'){
+                    var origExtend = L.Class.extend;
+                    L.Class.extend = function(props){
+                        try{
+                            if(props && typeof props.includes !== 'undefined'){
+                                var inc = props.includes;
+                                if(L.Evented && L.Evented.prototype){
+                                    if(inc === L.Mixin.Events || (inc && typeof inc === 'object')){
+                                        props.includes = L.Evented.prototype;
+                                    }
+                                    if(Array.isArray(inc)){
+                                        for(var i = 0; i < inc.length; i++){
+                                            if(inc[i] === L.Mixin.Events){
+                                                inc[i] = L.Evented.prototype;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }catch(err){}
+                        return origExtend.apply(this, arguments);
+                    };
+                }
+            }catch(e){}
+        })();
+        </script>
+        <script src="js/L.Control.Layers.Tree.min.js"></script>
+        <script src="js/L.Control.Locate.min.js"></script>
+        <script src="js/multi-style-layer.js"></script>
+        <script src="js/leaflet.rotatedMarker.js"></script>
+        <script src="js/leaflet.pattern.js"></script>
+        <script src="js/leaflet-hash.js"></script>
+        <script src="js/Autolinker.min.js"></script>
+        <script src="js/rbush.min.js"></script>
+        <script src="js/labelgun.min.js"></script>
+        <script src="js/labels.js"></script>
+        <script src="js/leaflet.photon.js"></script>
+        <script src="js/leaflet-measure.js"></script>
+        <script src="js/leaflet-search.js"></script>
+        <script src="data/Reg_Louga_4.js"></script>
+        <script src="data/Dept_Lougadata__departement_5.js"></script>
+        <script src="data/Arr_Louga_6.js"></script>
+        <script src="data/Hydrographie_Louga_7.js"></script>
+        <script src="data/Route_Louga_8.js"></script>
+        <script src="data/localites_Louga_9.js"></script>
+        <script src="data/School_Louga_10.js"></script>
+        <script>
+        var highlightLayer;
+        function highlightFeature(e) {
+            highlightLayer = e.target;
+
+            if (e.target.feature.geometry.type === 'LineString' || e.target.feature.geometry.type === 'MultiLineString') {
+              highlightLayer.setStyle({
+                color: 'rgba(255, 255, 0, 1.00)',
+              });
+            } else {
+              highlightLayer.setStyle({
+                fillColor: 'rgba(255, 255, 0, 1.00)',
+                fillOpacity: 1
+              });
+            }
+            highlightLayer.openPopup();
+        }
+        var map = L.map('map', {
+            zoomControl:false, maxZoom:28, minZoom:1
+        })
+        var hash = new L.Hash(map);
+        map.attributionControl.setPrefix('<a href="https://github.com/tomchadwin/qgis2web" target="_blank">qgis2web</a> &middot; <a href="https://leafletjs.com" title="A JS library for interactive maps">Leaflet</a> &middot; <a href="https://qgis.org">QGIS</a>');
+        var autolinker = new Autolinker({truncate: {length: 30, location: 'smart'}});
+        // remove popup's row if "visible-with-data"
+        function removeEmptyRowsFromPopupContent(content, feature) {
+         var tempDiv = document.createElement('div');
+         tempDiv.innerHTML = content;
+         var rows = tempDiv.querySelectorAll('tr');
+         for (var i = 0; i < rows.length; i++) {
+             var td = rows[i].querySelector('td.visible-with-data');
+             var key = td ? td.id : '';
+             if (td && td.classList.contains('visible-with-data') && feature.properties[key] == null) {
+                 rows[i].parentNode.removeChild(rows[i]);
+             }
+         }
+         return tempDiv.innerHTML;
+        }
+        // modify popup if contains media
+        function addClassToPopupIfMedia(content, popup) {
+            var tempDiv = document.createElement('div');
+            tempDiv.innerHTML = content;
+            var imgTd = tempDiv.querySelector('td img');
+            if (imgTd) {
+                var src = imgTd.getAttribute('src');
+                if (/\.(jpg|jpeg|png|gif|bmp|webp|avif)$/i.test(src)) {
+                    popup._contentNode.classList.add('media');
+                    setTimeout(function() {
+                        popup.update();
+                    }, 10);
+                } else if (/\.(mp3|wav|ogg|aac)$/i.test(src)) {
+                    var audio = document.createElement('audio');
+                    audio.controls = true;
+                    audio.src = src;
+                    imgTd.parentNode.replaceChild(audio, imgTd);
+                    popup._contentNode.classList.add('media');
+                    setTimeout(function() {
+                        popup.setContent(tempDiv.innerHTML);
+                        popup.update();
+                    }, 10);
+                } else if (/\.(mp4|webm|ogg|mov)$/i.test(src)) {
+                    var video = document.createElement('video');
+                    video.controls = true;
+                    video.src = src;
+                    video.style.width = "400px";
+                    video.style.height = "300px";
+                    video.style.maxHeight = "60vh";
+                    video.style.maxWidth = "60vw";
+                    imgTd.parentNode.replaceChild(video, imgTd);
+                    popup._contentNode.classList.add('media');
+                    // Aggiorna il popup quando il video carica i metadati
+                    video.addEventListener('loadedmetadata', function() {
+                        popup.update();
+                    });
+                    setTimeout(function() {
+                        popup.setContent(tempDiv.innerHTML);
+                        popup.update();
+                    }, 10);
+                } else {
+                    popup._contentNode.classList.remove('media');
+                }
+            } else {
+                popup._contentNode.classList.remove('media');
+            }
+        }
+        var title = new L.Control({'position':'topleft'});
+        title.onAdd = function (map) {
+            this._div = L.DomUtil.create('div', 'info');
+            this.update();
+            return this._div;
+        };
+        title.update = function () {
+            this._div.innerHTML = '<h2>Cartographie web de Louga</h2>';
+        };
+        title.addTo(map);
+        var abstract = new L.Control({'position':'bottomright'});
+        abstract.onAdd = function (map) {
+            this._div = L.DomUtil.create('div',
+            'leaflet-control abstract');
+            this._div.id = 'abstract'
+
+                abstract.show();
+                return this._div;
+            };
+            abstract.show = function () {
+                this._div.classList.remove("abstract");
+                this._div.classList.add("abstractUncollapsed");
+                this._div.innerHTML = 'Projet de cartographie web de la région de Louga fait par Abdou SARR';
+        };
+        abstract.addTo(map);
+        var zoomControl = L.control.zoom({
+            position: 'topleft'
+        }).addTo(map);
+        L.control.locate({locateOptions: {maxZoom: 19}}).addTo(map);
+        var measureControl = new L.Control.Measure({
+            position: 'topleft',
+            primaryLengthUnit: 'meters',
+            secondaryLengthUnit: 'kilometers',
+            primaryAreaUnit: 'sqmeters',
+            secondaryAreaUnit: 'hectares'
+        });
+        measureControl.addTo(map);
+        document.getElementsByClassName('leaflet-control-measure-toggle')[0].innerHTML = '';
+        document.getElementsByClassName('leaflet-control-measure-toggle')[0].className += ' fas fa-ruler';
+        var bounds_group = new L.featureGroup([]);
+        function setBounds() {
+            if (bounds_group.getLayers().length) {
+                map.fitBounds(bounds_group.getBounds());
+            }
+        }
+        map.createPane('pane_GoogleTerrainHybrid_0');
+        map.getPane('pane_GoogleTerrainHybrid_0').style.zIndex = 400;
+        var layer_GoogleTerrainHybrid_0 = L.tileLayer('https://mt1.google.com/vt/lyrs=p&x={x}&y={y}&z={z}', {
+            pane: 'pane_GoogleTerrainHybrid_0',
+            opacity: 1.0,
+            attribution: '',
+            minZoom: 1,
+            maxZoom: 28,
+            minNativeZoom: 0,
+            maxNativeZoom: 19
+        });
+        layer_GoogleTerrainHybrid_0;
+        map.addLayer(layer_GoogleTerrainHybrid_0);
+        map.createPane('pane_GoogleSatellite_1');
+        map.getPane('pane_GoogleSatellite_1').style.zIndex = 401;
+        var layer_GoogleSatellite_1 = L.tileLayer('https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
+            pane: 'pane_GoogleSatellite_1',
+            opacity: 1.0,
+            attribution: '',
+            minZoom: 1,
+            maxZoom: 28,
+            minNativeZoom: 0,
+            maxNativeZoom: 19
+        });
+        layer_GoogleSatellite_1;
+        map.addLayer(layer_GoogleSatellite_1);
+        map.createPane('pane_OpenStreetMap_2');
+        map.getPane('pane_OpenStreetMap_2').style.zIndex = 402;
+        var layer_OpenStreetMap_2 = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            pane: 'pane_OpenStreetMap_2',
+            opacity: 1.0,
+            attribution: '',
+            minZoom: 1,
+            maxZoom: 28,
+            minNativeZoom: 0,
+            maxNativeZoom: 19
+        });
+        layer_OpenStreetMap_2;
+        map.addLayer(layer_OpenStreetMap_2);
+        map.createPane('pane_GoogleMaps_3');
+        map.getPane('pane_GoogleMaps_3').style.zIndex = 403;
+        var layer_GoogleMaps_3 = L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+            pane: 'pane_GoogleMaps_3',
+            opacity: 1.0,
+            attribution: '',
+            minZoom: 1,
+            maxZoom: 28,
+            minNativeZoom: 0,
+            maxNativeZoom: 19
+        });
+        layer_GoogleMaps_3;
+        map.addLayer(layer_GoogleMaps_3);
+        function pop_Reg_Louga_4(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    for (var i in e.target._eventParents) {
+                        if (typeof e.target._eventParents[i].resetStyle === 'function') {
+                            e.target._eventParents[i].resetStyle(e.target);
+                        }
+                    }
+                    if (typeof layer.closePopup == 'function') {
+                        layer.closePopup();
+                    } else {
+                        layer.eachLayer(function(feature){
+                            feature.closePopup()
+                        });
+                    }
+                },
+                mouseover: highlightFeature,
+            });
+            var popupContent = '<table>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['OBJECTID_1'] !== null ? autolinker.link(String(feature.properties['OBJECTID_1']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['ogr_fid'] !== null ? autolinker.link(String(feature.properties['ogr_fid']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['objectid_2'] !== null ? autolinker.link(String(feature.properties['objectid_2']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['objectid'] !== null ? autolinker.link(String(feature.properties['objectid']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Statut'] !== null ? autolinker.link(String(feature.properties['Statut']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Code'] !== null ? autolinker.link(String(feature.properties['Code']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Région'] !== null ? autolinker.link(String(feature.properties['Région']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['shape_leng'] !== null ? autolinker.link(String(feature.properties['shape_leng']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Shape_Le_1'] !== null ? autolinker.link(String(feature.properties['Shape_Le_1']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Shape_Area'] !== null ? autolinker.link(String(feature.properties['Shape_Area']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_Reg_Louga_4_0() {
+            return {
+                pane: 'pane_Reg_Louga_4',
+                opacity: 1,
+                color: 'rgba(236,0,26,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 6.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(16,161,235,0.0)',
+                interactive: true,
+            }
+        }
+        map.createPane('pane_Reg_Louga_4');
+        map.getPane('pane_Reg_Louga_4').style.zIndex = 404;
+        map.getPane('pane_Reg_Louga_4').style['mix-blend-mode'] = 'normal';
+        var layer_Reg_Louga_4 = new L.geoJson(json_Reg_Louga_4, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_Reg_Louga_4',
+            layerName: 'layer_Reg_Louga_4',
+            pane: 'pane_Reg_Louga_4',
+            onEachFeature: pop_Reg_Louga_4,
+            style: style_Reg_Louga_4_0,
+        });
+        bounds_group.addLayer(layer_Reg_Louga_4);
+        map.addLayer(layer_Reg_Louga_4);
+        function pop_Dept_Lougadata__departement_5(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    for (var i in e.target._eventParents) {
+                        if (typeof e.target._eventParents[i].resetStyle === 'function') {
+                            e.target._eventParents[i].resetStyle(e.target);
+                        }
+                    }
+                    if (typeof layer.closePopup == 'function') {
+                        layer.closePopup();
+                    } else {
+                        layer.eachLayer(function(feature){
+                            feature.closePopup()
+                        });
+                    }
+                },
+                mouseover: highlightFeature,
+            });
+            var popupContent = '<table>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['fid'] !== null ? autolinker.link(String(feature.properties['fid']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['OBJECTID_1'] !== null ? autolinker.link(String(feature.properties['OBJECTID_1']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['ogr_fid'] !== null ? autolinker.link(String(feature.properties['ogr_fid']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['objectid_2'] !== null ? autolinker.link(String(feature.properties['objectid_2']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['objectid'] !== null ? autolinker.link(String(feature.properties['objectid']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['statut'] !== null ? autolinker.link(String(feature.properties['statut']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['cod_reg'] !== null ? autolinker.link(String(feature.properties['cod_reg']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['reg'] !== null ? autolinker.link(String(feature.properties['reg']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['dept'] !== null ? autolinker.link(String(feature.properties['dept']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['cod_dept'] !== null ? autolinker.link(String(feature.properties['cod_dept']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['ccod_dept'] !== null ? autolinker.link(String(feature.properties['ccod_dept']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['shape_leng'] !== null ? autolinker.link(String(feature.properties['shape_leng']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Shape_Le_1'] !== null ? autolinker.link(String(feature.properties['Shape_Le_1']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Shape_Area'] !== null ? autolinker.link(String(feature.properties['Shape_Area']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_Dept_Lougadata__departement_5_0() {
+            return {
+                pane: 'pane_Dept_Lougadata__departement_5',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 4.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(164,113,88,0.0)',
+                interactive: true,
+            }
+        }
+        map.createPane('pane_Dept_Lougadata__departement_5');
+        map.getPane('pane_Dept_Lougadata__departement_5').style.zIndex = 405;
+        map.getPane('pane_Dept_Lougadata__departement_5').style['mix-blend-mode'] = 'normal';
+        var layer_Dept_Lougadata__departement_5 = new L.geoJson(json_Dept_Lougadata__departement_5, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_Dept_Lougadata__departement_5',
+            layerName: 'layer_Dept_Lougadata__departement_5',
+            pane: 'pane_Dept_Lougadata__departement_5',
+            onEachFeature: pop_Dept_Lougadata__departement_5,
+            style: style_Dept_Lougadata__departement_5_0,
+        });
+        bounds_group.addLayer(layer_Dept_Lougadata__departement_5);
+        map.addLayer(layer_Dept_Lougadata__departement_5);
+        function pop_Arr_Louga_6(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    for (var i in e.target._eventParents) {
+                        if (typeof e.target._eventParents[i].resetStyle === 'function') {
+                            e.target._eventParents[i].resetStyle(e.target);
+                        }
+                    }
+                    if (typeof layer.closePopup == 'function') {
+                        layer.closePopup();
+                    } else {
+                        layer.eachLayer(function(feature){
+                            feature.closePopup()
+                        });
+                    }
+                },
+                mouseover: highlightFeature,
+            });
+            var popupContent = '<table>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['OBJECTID'] !== null ? autolinker.link(String(feature.properties['OBJECTID']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['statut'] !== null ? autolinker.link(String(feature.properties['statut']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['cod_reg'] !== null ? autolinker.link(String(feature.properties['cod_reg']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['reg'] !== null ? autolinker.link(String(feature.properties['reg']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['dept'] !== null ? autolinker.link(String(feature.properties['dept']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['cod_dept'] !== null ? autolinker.link(String(feature.properties['cod_dept']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['ccod_dept'] !== null ? autolinker.link(String(feature.properties['ccod_dept']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['cav'] !== null ? autolinker.link(String(feature.properties['cav']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['cod_cav'] !== null ? autolinker.link(String(feature.properties['cod_cav']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['ccod_cav'] !== null ? autolinker.link(String(feature.properties['ccod_cav']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['arr'] !== null ? autolinker.link(String(feature.properties['arr']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['code_arr'] !== null ? autolinker.link(String(feature.properties['code_arr']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_Arr_Louga_6_0(feature) {
+            switch(String(feature.properties['arr'])) {
+                case 'BARKEDJI':
+                    return {
+                pane: 'pane_Arr_Louga_6',
+                opacity: 1,
+                color: 'rgba(247,247,247,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(48,18,59,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'COKI':
+                    return {
+                pane: 'pane_Arr_Louga_6',
+                opacity: 1,
+                color: 'rgba(247,247,247,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(69,91,205,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'DAROU MOUSTY':
+                    return {
+                pane: 'pane_Arr_Louga_6',
+                opacity: 1,
+                color: 'rgba(247,247,247,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(62,156,254,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'DODJI':
+                    return {
+                pane: 'pane_Arr_Louga_6',
+                opacity: 1,
+                color: 'rgba(247,247,247,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(24,215,203,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'MBEDIENE':
+                    return {
+                pane: 'pane_Arr_Louga_6',
+                opacity: 1,
+                color: 'rgba(247,247,247,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(72,248,130,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'MEUR MOMAR SARR':
+                    return {
+                pane: 'pane_Arr_Louga_6',
+                opacity: 1,
+                color: 'rgba(247,247,247,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(164,252,60,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'SAGATTA DJOLOF':
+                    return {
+                pane: 'pane_Arr_Louga_6',
+                opacity: 1,
+                color: 'rgba(247,247,247,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(226,220,56,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'SAGATTA GUETH':
+                    return {
+                pane: 'pane_Arr_Louga_6',
+                opacity: 1,
+                color: 'rgba(247,247,247,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(254,163,49,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'SAKAL':
+                    return {
+                pane: 'pane_Arr_Louga_6',
+                opacity: 1,
+                color: 'rgba(247,247,247,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(239,89,17,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'YANG YANG':
+                    return {
+                pane: 'pane_Arr_Louga_6',
+                opacity: 1,
+                color: 'rgba(247,247,247,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(194,36,3,1.0)',
+                interactive: true,
+            }
+                    break;
+                default:
+                    return {
+                pane: 'pane_Arr_Louga_6',
+                opacity: 1,
+                color: 'rgba(247,247,247,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(122,4,3,1.0)',
+                interactive: true,
+            }
+                    break;
+            }
+        }
+        map.createPane('pane_Arr_Louga_6');
+        map.getPane('pane_Arr_Louga_6').style.zIndex = 406;
+        map.getPane('pane_Arr_Louga_6').style['mix-blend-mode'] = 'normal';
+        var layer_Arr_Louga_6 = new L.geoJson(json_Arr_Louga_6, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_Arr_Louga_6',
+            layerName: 'layer_Arr_Louga_6',
+            pane: 'pane_Arr_Louga_6',
+            onEachFeature: pop_Arr_Louga_6,
+            style: style_Arr_Louga_6_0,
+        });
+        bounds_group.addLayer(layer_Arr_Louga_6);
+        map.addLayer(layer_Arr_Louga_6);
+        function pop_Hydrographie_Louga_7(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    for (var i in e.target._eventParents) {
+                        if (typeof e.target._eventParents[i].resetStyle === 'function') {
+                            e.target._eventParents[i].resetStyle(e.target);
+                        }
+                    }
+                    if (typeof layer.closePopup == 'function') {
+                        layer.closePopup();
+                    } else {
+                        layer.eachLayer(function(feature){
+                            feature.closePopup()
+                        });
+                    }
+                },
+                mouseover: highlightFeature,
+            });
+            var popupContent = '<table>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['FNODE_'] !== null ? autolinker.link(String(feature.properties['FNODE_']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['TNODE_'] !== null ? autolinker.link(String(feature.properties['TNODE_']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['LPOLY_'] !== null ? autolinker.link(String(feature.properties['LPOLY_']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['RPOLY_'] !== null ? autolinker.link(String(feature.properties['RPOLY_']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['LENGTH'] !== null ? autolinker.link(String(feature.properties['LENGTH']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['HYDROLA3_'] !== null ? autolinker.link(String(feature.properties['HYDROLA3_']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['HYDROLA3_I'] !== null ? autolinker.link(String(feature.properties['HYDROLA3_I']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['CODE'] !== null ? autolinker.link(String(feature.properties['CODE']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['NOM'] !== null ? autolinker.link(String(feature.properties['NOM']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['LIBELLE'] !== null ? autolinker.link(String(feature.properties['LIBELLE']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_Hydrographie_Louga_7_0() {
+            return {
+                pane: 'pane_Hydrographie_Louga_7',
+                opacity: 1,
+                color: 'rgba(122,148,243,1.0)',
+                dashArray: '',
+                lineCap: 'square',
+                lineJoin: 'bevel',
+                weight: 2.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+        }
+        map.createPane('pane_Hydrographie_Louga_7');
+        map.getPane('pane_Hydrographie_Louga_7').style.zIndex = 407;
+        map.getPane('pane_Hydrographie_Louga_7').style['mix-blend-mode'] = 'normal';
+        var layer_Hydrographie_Louga_7 = new L.geoJson(json_Hydrographie_Louga_7, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_Hydrographie_Louga_7',
+            layerName: 'layer_Hydrographie_Louga_7',
+            pane: 'pane_Hydrographie_Louga_7',
+            onEachFeature: pop_Hydrographie_Louga_7,
+            style: style_Hydrographie_Louga_7_0,
+        });
+        bounds_group.addLayer(layer_Hydrographie_Louga_7);
+        map.addLayer(layer_Hydrographie_Louga_7);
+        function pop_Route_Louga_8(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    for (var i in e.target._eventParents) {
+                        if (typeof e.target._eventParents[i].resetStyle === 'function') {
+                            e.target._eventParents[i].resetStyle(e.target);
+                        }
+                    }
+                    if (typeof layer.closePopup == 'function') {
+                        layer.closePopup();
+                    } else {
+                        layer.eachLayer(function(feature){
+                            feature.closePopup()
+                        });
+                    }
+                },
+                mouseover: highlightFeature,
+            });
+            var popupContent = '<table>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['FNODE_'] !== null ? autolinker.link(String(feature.properties['FNODE_']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['TNODE_'] !== null ? autolinker.link(String(feature.properties['TNODE_']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['LPOLY_'] !== null ? autolinker.link(String(feature.properties['LPOLY_']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['RPOLY_'] !== null ? autolinker.link(String(feature.properties['RPOLY_']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['LONGUEUR'] !== null ? autolinker.link(String(feature.properties['LONGUEUR']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['ROUTESA3_'] !== null ? autolinker.link(String(feature.properties['ROUTESA3_']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['ROUTESA3_I'] !== null ? autolinker.link(String(feature.properties['ROUTESA3_I']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['CODE'] !== null ? autolinker.link(String(feature.properties['CODE']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['FONCTION'] !== null ? autolinker.link(String(feature.properties['FONCTION']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_Route_Louga_8_0() {
+            return {
+                pane: 'pane_Route_Louga_8',
+                opacity: 1,
+                color: 'rgba(0,0,0,1.0)',
+                dashArray: '',
+                lineCap: 'round',
+                lineJoin: 'round',
+                weight: 1.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+        }
+        function style_Route_Louga_8_1() {
+            return {
+                pane: 'pane_Route_Louga_8',
+                opacity: 1,
+                color: 'rgba(182,15,15,1.0)',
+                dashArray: '',
+                lineCap: 'round',
+                lineJoin: 'round',
+                weight: 1.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+        }
+        map.createPane('pane_Route_Louga_8');
+        map.getPane('pane_Route_Louga_8').style.zIndex = 408;
+        map.getPane('pane_Route_Louga_8').style['mix-blend-mode'] = 'normal';
+        var layer_Route_Louga_8 = new L.geoJson.multiStyle(json_Route_Louga_8, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_Route_Louga_8',
+            layerName: 'layer_Route_Louga_8',
+            pane: 'pane_Route_Louga_8',
+            onEachFeature: pop_Route_Louga_8,
+            styles: [style_Route_Louga_8_0,style_Route_Louga_8_1,]
+        });
+        bounds_group.addLayer(layer_Route_Louga_8);
+        map.addLayer(layer_Route_Louga_8);
+        function pop_localites_Louga_9(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    for (var i in e.target._eventParents) {
+                        if (typeof e.target._eventParents[i].resetStyle === 'function') {
+                            e.target._eventParents[i].resetStyle(e.target);
+                        }
+                    }
+                    if (typeof layer.closePopup == 'function') {
+                        layer.closePopup();
+                    } else {
+                        layer.eachLayer(function(feature){
+                            feature.closePopup()
+                        });
+                    }
+                },
+                mouseover: highlightFeature,
+            });
+            var popupContent = '<table>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['ENTITY'] !== null ? autolinker.link(String(feature.properties['ENTITY']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['LAYER'] !== null ? autolinker.link(String(feature.properties['LAYER']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['ELEVATION'] !== null ? autolinker.link(String(feature.properties['ELEVATION']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['THICKNESS'] !== null ? autolinker.link(String(feature.properties['THICKNESS']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['COLOR'] !== null ? autolinker.link(String(feature.properties['COLOR']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['NOM'] !== null ? autolinker.link(String(feature.properties['NOM']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['NUM_VILLAG'] !== null ? autolinker.link(String(feature.properties['NUM_VILLAG']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['X_UTM'] !== null ? autolinker.link(String(feature.properties['X_UTM']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Y_UTM'] !== null ? autolinker.link(String(feature.properties['Y_UTM']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_localites_Louga_9_0() {
+            return {
+                pane: 'pane_localites_Louga_9',
+                radius: 2.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(183,72,75,1.0)',
+                interactive: true,
+            }
+        }
+        map.createPane('pane_localites_Louga_9');
+        map.getPane('pane_localites_Louga_9').style.zIndex = 409;
+        map.getPane('pane_localites_Louga_9').style['mix-blend-mode'] = 'normal';
+        var layer_localites_Louga_9 = new L.geoJson(json_localites_Louga_9, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_localites_Louga_9',
+            layerName: 'layer_localites_Louga_9',
+            pane: 'pane_localites_Louga_9',
+            onEachFeature: pop_localites_Louga_9,
+            pointToLayer: function (feature, latlng) {
+                var context = {
+                    feature: feature,
+                    variables: {}
+                };
+                return L.circleMarker(latlng, style_localites_Louga_9_0(feature));
+            },
+        });
+        bounds_group.addLayer(layer_localites_Louga_9);
+        map.addLayer(layer_localites_Louga_9);
+        function pop_School_Louga_10(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    for (var i in e.target._eventParents) {
+                        if (typeof e.target._eventParents[i].resetStyle === 'function') {
+                            e.target._eventParents[i].resetStyle(e.target);
+                        }
+                    }
+                    if (typeof layer.closePopup == 'function') {
+                        layer.closePopup();
+                    } else {
+                        layer.eachLayer(function(feature){
+                            feature.closePopup()
+                        });
+                    }
+                },
+                mouseover: highlightFeature,
+            });
+            var popupContent = '<table>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['osm_id'] !== null ? autolinker.link(String(feature.properties['osm_id']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['code'] !== null ? autolinker.link(String(feature.properties['code']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Type'] !== null ? autolinker.link(String(feature.properties['Type']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Nom'] !== null ? autolinker.link(String(feature.properties['Nom']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_School_Louga_10_0() {
+            return {
+                pane: 'pane_School_Louga_10',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(50,87,128,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 2.0,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(205,255,11,1.0)',
+                interactive: true,
+            }
+        }
+        map.createPane('pane_School_Louga_10');
+        map.getPane('pane_School_Louga_10').style.zIndex = 410;
+        map.getPane('pane_School_Louga_10').style['mix-blend-mode'] = 'normal';
+        var layer_School_Louga_10 = new L.geoJson(json_School_Louga_10, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_School_Louga_10',
+            layerName: 'layer_School_Louga_10',
+            pane: 'pane_School_Louga_10',
+            onEachFeature: pop_School_Louga_10,
+            pointToLayer: function (feature, latlng) {
+                var context = {
+                    feature: feature,
+                    variables: {}
+                };
+                return L.circleMarker(latlng, style_School_Louga_10_0(feature));
+            },
+        });
+        bounds_group.addLayer(layer_School_Louga_10);
+        map.addLayer(layer_School_Louga_10);
+        const url = {"Nominatim OSM": "https://nominatim.openstreetmap.org/search?format=geojson&addressdetails=1&",
+        "France BAN": "https://api-adresse.data.gouv.fr/search/?"}
+        var photonControl = L.control.photon({
+            url: url["Nominatim OSM"],
+            feedbackLabel: '',
+            position: 'topleft',
+            includePosition: true,
+            initial: true,
+            // resultsHandler: myHandler,
+        }).addTo(map);
+        photonControl._container.childNodes[0].style.borderRadius="10px"
+        // Create a variable to store the geoJSON data
+        var x = null;
+        // Create a variable to store the marker
+        var marker = null;
+        // Add an event listener to the Photon control to create a marker from the returned geoJSON data
+        var z = null;
+        photonControl.on('selected', function(e) {
+            console.log(photonControl.search.resultsContainer);
+            if (x != null) {
+                map.removeLayer(obj3.marker);
+                map.removeLayer(x);
+            }
+            obj2.gcd = e.choice;
+            x = L.geoJSON(obj2.gcd).addTo(map);
+            var label = typeof obj2.gcd.properties.label === 'undefined' ? obj2.gcd.properties.display_name : obj2.gcd.properties.label;
+            obj3.marker = L.marker(x.getLayers()[0].getLatLng()).bindPopup(label).addTo(map);
+            map.setView(x.getLayers()[0].getLatLng(), 17);
+            z = typeof e.choice.properties.label === 'undefined'? e.choice.properties.display_name : e.choice.properties.label;
+            console.log(e);
+            e.target.input.value = z;
+        });
+        var search = document.getElementsByClassName("leaflet-photon leaflet-control")[0];
+        search.classList.add("leaflet-control-search")
+        search.style.display = "flex";
+        search.style.backgroundColor="rgba(255,255,255,0.5)" 
+
+        // Create the new button element
+        var button = document.createElement("div");
+        button.id = "gcd-button-control";
+        button.className = "gcd-gl-btn fa fa-search search-button";
+
+        // Insert the button at the beginning of the search control
+        search.insertBefore(button, search.firstChild);
+        last = search.lastChild;
+        last.style.display = "none";
+        button.addEventListener("click", function (e) {
+            if (last.style.display === "none") {
+                last.style.display = "block";
+            } else {
+                last.style.display = "none";
+            }
+        });
+        var overlaysTree = [
+            {label: '<img src="legend/School_Louga_10.png" /> School_Louga', layer: layer_School_Louga_10},
+            {label: '<img src="legend/localites_Louga_9.png" /> localites_Louga', layer: layer_localites_Louga_9},
+            {label: '<img src="legend/Route_Louga_8.png" /> Route_Louga', layer: layer_Route_Louga_8},
+            {label: '<img src="legend/Hydrographie_Louga_7.png" /> Hydrographie_Louga', layer: layer_Hydrographie_Louga_7},
+            {label: 'Arr_Louga<br /><table><tr><td style="text-align: center;"><img src="legend/Arr_Louga_6_BARKEDJI0.png" /></td><td>BARKEDJI</td></tr><tr><td style="text-align: center;"><img src="legend/Arr_Louga_6_COKI1.png" /></td><td>COKI</td></tr><tr><td style="text-align: center;"><img src="legend/Arr_Louga_6_DAROUMOUSTY2.png" /></td><td>DAROU MOUSTY</td></tr><tr><td style="text-align: center;"><img src="legend/Arr_Louga_6_DODJI3.png" /></td><td>DODJI</td></tr><tr><td style="text-align: center;"><img src="legend/Arr_Louga_6_MBEDIENE4.png" /></td><td>MBEDIENE</td></tr><tr><td style="text-align: center;"><img src="legend/Arr_Louga_6_MEURMOMARSARR5.png" /></td><td>MEUR MOMAR SARR</td></tr><tr><td style="text-align: center;"><img src="legend/Arr_Louga_6_SAGATTADJOLOF6.png" /></td><td>SAGATTA DJOLOF</td></tr><tr><td style="text-align: center;"><img src="legend/Arr_Louga_6_SAGATTAGUETH7.png" /></td><td>SAGATTA GUETH</td></tr><tr><td style="text-align: center;"><img src="legend/Arr_Louga_6_SAKAL8.png" /></td><td>SAKAL</td></tr><tr><td style="text-align: center;"><img src="legend/Arr_Louga_6_YANGYANG9.png" /></td><td>YANG YANG</td></tr><tr><td style="text-align: center;"><img src="legend/Arr_Louga_6_10.png" /></td><td></td></tr></table>', layer: layer_Arr_Louga_6},
+            {label: '<img src="legend/Dept_Lougadata__departement_5.png" /> Dept_Louga — data__departement', layer: layer_Dept_Lougadata__departement_5},
+            {label: '<img src="legend/Reg_Louga_4.png" /> Reg_Louga', layer: layer_Reg_Louga_4},
+            {label: "Google Maps", layer: layer_GoogleMaps_3, radioGroup: 'bm' },
+            {label: "OpenStreetMap", layer: layer_OpenStreetMap_2, radioGroup: 'bm' },
+            {label: "Google Satellite", layer: layer_GoogleSatellite_1, radioGroup: 'bm' },
+            {label: "Google Terrain Hybrid", layer: layer_GoogleTerrainHybrid_0, radioGroup: 'bm' },]
+        var lay = L.control.layers.tree(null, overlaysTree,{
+            //namedToggle: true,
+            //selectorBack: false,
+            //closedSymbol: '&#8862; &#x1f5c0;',
+            //openedSymbol: '&#8863; &#x1f5c1;',
+            //collapseAll: 'Collapse all',
+            //expandAll: 'Expand all',
+            collapsed: true,
+        });
+        lay.addTo(map);
+        setBounds();
+        var i = 0;
+        layer_Dept_Lougadata__departement_5.eachLayer(function(layer) {
+            var context = {
+                feature: layer.feature,
+                variables: {}
+            };
+            layer.bindTooltip((layer.feature.properties['dept'] !== null?String('<div style="color: #ff3232; font-size: 14pt; font-family: \'Open Sans\', sans-serif;">' + layer.feature.properties['dept']) + '</div>':''), {permanent: true, offset: [-0, -16], className: 'css_Dept_Lougadata__departement_5'});
+            labels.push(layer);
+            totalMarkers += 1;
+              layer.added = true;
+              addLabel(layer, i);
+              i++;
+        });
+        var i = 0;
+        layer_Arr_Louga_6.eachLayer(function(layer) {
+            var context = {
+                feature: layer.feature,
+                variables: {}
+            };
+            layer.bindTooltip((layer.feature.properties['arr'] !== null?String('<div style="color: #323232; font-size: 13pt; font-family: \'Open Sans\', sans-serif;">' + layer.feature.properties['arr']) + '</div>':''), {permanent: true, offset: [-0, -16], className: 'css_Arr_Louga_6'});
+            labels.push(layer);
+            totalMarkers += 1;
+              layer.added = true;
+              addLabel(layer, i);
+              i++;
+        });
+        map.addControl(new L.Control.Search({
+            layer: layer_Dept_Lougadata__departement_5,
+            initial: false,
+            hideMarkerOnCollapse: true,
+            propertyName: 'dept'}));
+        if (typeof url === 'undefined') {
+            document.getElementsByClassName('search-button')[0].className += ' fa fa-binoculars';
+        } else {
+            document.getElementsByClassName('search-button')[1].className += ' fa fa-binoculars';
+        }
+        resetLabels([layer_Dept_Lougadata__departement_5,layer_Arr_Louga_6]);
+        map.on("zoomend", function(){
+            resetLabels([layer_Dept_Lougadata__departement_5,layer_Arr_Louga_6]);
+        });
+        map.on("layeradd", function(){
+            resetLabels([layer_Dept_Lougadata__departement_5,layer_Arr_Louga_6]);
+        });
+        map.on("layerremove", function(){
+            resetLabels([layer_Dept_Lougadata__departement_5,layer_Arr_Louga_6]);
+        });
+        </script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-minimap/3.6.1/Control.MiniMap.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-easyprint/2.1.9/easyPrint.min.js"></script>
+        <script src="js/custom_ui.js"></script>
+        <script>
+        // ========== PWA & Service Worker Registration ==========
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js', { scope: '/sig_louga2/' })
+                    .then((registration) => {
+                        console.log('Service Worker enregistré:', registration);
+                        // Vérifier les mises à jour tous les heures
+                        setInterval(() => registration.update(), 3600000);
+                    })
+                    .catch((error) => console.log('Service Worker enregistrement échoué:', error));
+            });
+
+            // Gestion des mises à jour du Service Worker
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+                console.log('Service Worker contrôleur changé');
+                showUpdateNotification();
+            });
+        }
+
+        // ========== PWA Installation Prompt ==========
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            document.getElementById('pwa-prompt').style.display = 'block';
+            console.log('PWA installation disponible');
+        });
+
+        function pwaInstall() {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then((choiceResult) => {
+                    if (choiceResult.outcome === 'accepted') {
+                        console.log('PWA installée');
+                        document.getElementById('pwa-prompt').style.display = 'none';
+                    }
+                    deferredPrompt = null;
+                });
+            }
+        }
+
+        function pwaDismiss() {
+            document.getElementById('pwa-prompt').style.display = 'none';
+            localStorage.setItem('pwa-dismissed', Date.now());
+        }
+
+        // Masquer le prompt si déjà rejeté récemment
+        const pwaDismissed = localStorage.getItem('pwa-dismissed');
+        if (pwaDismissed && (Date.now() - pwaDismissed < 604800000)) { // 7 jours
+            document.getElementById('pwa-prompt').style.display = 'none';
+        }
+
+        // ========== Géolocalisation ==========
+        let geolocMarker = null;
+        let geolocAccuracy = null;
+
+        function initGeolocation() {
+            if ('geolocation' in navigator) {
+                // Watch position pour suivi continu
+                navigator.geolocation.watchPosition(
+                    (position) => {
+                        const { latitude, longitude, accuracy } = position.coords;
+                        console.log('Géolocalisation:', latitude, longitude, 'Précision:', accuracy, 'm');
+
+                        // Retirer l'ancien marqueur
+                        if (geolocMarker) {
+                            map.removeLayer(geolocMarker);
+                        }
+                        if (geolocAccuracy) {
+                            map.removeLayer(geolocAccuracy);
+                        }
+
+                        // Ajouter le marqueur de géolocalisation
+                        geolocMarker = L.marker([latitude, longitude], {
+                            icon: L.divIcon({
+                                html: '<i class=\"fas fa-map-pin\" style=\"color:#0b61a4; font-size:24px; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.3));\"></i>',
+                                iconSize: [30, 30],
+                                className: 'geoloc-marker'
+                            }),
+                            title: 'Votre position'
+                        }).addTo(map).bindPopup('📍 Votre position<br>Précision: ' + Math.round(accuracy) + 'm');
+
+                        // Ajouter le cercle de précision
+                        geolocAccuracy = L.circle([latitude, longitude], {
+                            radius: accuracy,
+                            color: '#0b61a4',
+                            weight: 2,
+                            opacity: 0.3,
+                            fill: true,
+                            fillColor: '#0b61a4',
+                            fillOpacity: 0.05
+                        }).addTo(map);
+
+                        // Centrer la carte sur la position (une seule fois au premier appel)
+                        if (!window.geolocInitialized) {
+                            map.setView([latitude, longitude], 15);
+                            window.geolocInitialized = true;
+                        }
+
+                        // Mettre à jour les coordonnées affichées
+                        document.getElementById('coords').innerHTML = 
+                            '<i class=\"fas fa-crosshairs\"></i> Lng: ' + longitude.toFixed(5) + ', Lat: ' + latitude.toFixed(5);
+                    },
+                    (error) => {
+                        console.warn('Erreur géolocalisation:', error.message);
+                        switch (error.code) {
+                            case error.PERMISSION_DENIED:
+                                alert('La géolocalisation est désactivée. Autorisez l\'accès dans les paramètres de votre navigateur.');
+                                break;
+                            case error.POSITION_UNAVAILABLE:
+                                console.log('Information de position non disponible');
+                                break;
+                            case error.TIMEOUT:
+                                console.log('Délai dépassé pour obtenir la position');
+                                break;
+                        }
+                    },
+                    {
+                        enableHighAccuracy: true,
+                        timeout: 10000,
+                        maximumAge: 0
+                    }
+                );
+            } else {
+                alert('Géolocalisation non supportée par votre navigateur');
+            }
+        }
+
+        // Ajouter un bouton de géolocalisation à la carte
+        L.Control.extend(L.Control, {
+            Geolocate: L.Control.extend({
+                options: { position: 'topleft' },
+                onAdd: function(map) {
+                    const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
+                    const btn = L.DomUtil.create('a', '', container);
+                    btn.innerHTML = '<i class=\"fas fa-location-crosshairs\" style=\"font-size:18px; color:#0b61a4;\"></i>';
+                    btn.style.width = '36px';
+                    btn.style.height = '36px';
+                    btn.style.lineHeight = '36px';
+                    btn.style.textAlign = 'center';
+                    btn.style.cursor = 'pointer';
+                    btn.title = 'Afficher ma position';
+                    L.DomEvent.on(btn, 'click', (e) => {
+                        L.DomEvent.stopPropagation(e);
+                        if ('geolocation' in navigator) {
+                            navigator.geolocation.getCurrentPosition((pos) => {
+                                const { latitude, longitude } = pos.coords;
+                                map.setView([latitude, longitude], 16);
+                                if (geolocMarker) geolocMarker.openPopup();
+                            });
+                        }
+                    });
+                    return container;
+                }
+            })
+        });
+
+        // Initialiser la géolocalisation une fois la carte prête
+        map.on('load', () => {
+            if (typeof window.map !== 'undefined') {
+                initGeolocation();
+                new L.Control.Geolocate().addTo(map);
+            }
+        });
+
+        // Initialiser si la carte est déjà prête
+        if (document.readyState === 'complete' || document.readyState === 'interactive') {
+            setTimeout(() => {
+                if (typeof window.map !== 'undefined') {
+                    initGeolocation();
+                    new L.Control.Geolocate().addTo(map);
+                }
+            }, 500);
+        }
+
+        // ========== Notification de mise à jour ==========
+        function showUpdateNotification() {
+            if (Notification.permission === 'granted') {
+                new Notification('SIG Louga', {
+                    body: 'Une mise à jour est disponible. La page sera rechargée.',
+                    icon: 'icons/icon-192.svg'
+                });
+                setTimeout(() => window.location.reload(), 2000);
+            }
+        }
+
+        // Demander la permission pour les notifications
+        if ('Notification' in window && Notification.permission === 'default') {
+            Notification.requestPermission();
+        }
+        </script>
+    </body>
+</html>

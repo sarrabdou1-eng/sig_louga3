@@ -4,10 +4,34 @@
       <stop offset="0%" style="stop-color:#0b61a4;stop-opacity:1" />
       <stop offset="100%" style="stop-color:#0d7bb8;stop-opacity:1" />
     </linearGradient>
+    <style>
+      .shadow { filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2)); }
+    </style>
   </defs>
+  
+  <!-- Fond dégradé -->
   <rect width="192" height="192" fill="url(#grad)"/>
-  <circle cx="96" cy="96" r="70" fill="white" opacity="0.2"/>
-  <path d="M 96 40 L 120 80 L 150 80 L 130 105 L 140 150 L 96 120 L 52 150 L 62 105 L 42 80 L 72 80 Z" fill="white"/>
-  <circle cx="96" cy="96" r="45" fill="none" stroke="white" stroke-width="3" opacity="0.5"/>
-  <text x="96" y="170" font-size="12" font-weight="bold" text-anchor="middle" fill="white">LOUGA</text>
+  
+  <!-- Cercle de fond pour l'icône -->
+  <circle cx="96" cy="96" r="75" fill="white" opacity="0.15"/>
+  
+  <!-- Icône de carte stylisée -->
+  <g class="shadow" transform="translate(40, 35)">
+    <!-- Contour de carte -->
+    <rect x="0" y="0" width="112" height="98" rx="12" ry="12" fill="white" opacity="0.95"/>
+    
+    <!-- Régions stylisées -->
+    <path d="M 20 25 Q 35 18 45 28 Q 48 35 38 42 Q 28 38 20 40 Z" fill="#ffc107" opacity="0.8"/>
+    <path d="M 55 20 Q 70 22 75 35 Q 72 48 55 50 Q 50 42 55 30 Z" fill="#ff9800" opacity="0.75"/>
+    <path d="M 25 55 Q 18 65 28 75 Q 42 78 45 65 Q 40 60 30 58 Z" fill="#f44336" opacity="0.7"/>
+    <path d="M 62 62 Q 75 60 80 75 Q 75 88 60 85 Q 58 75 62 65 Z" fill="#2196f3" opacity="0.8"/>
+    
+    <!-- Point de géolocalisation au centre -->
+    <circle cx="56" cy="49" r="5" fill="#ff5722"/>
+    <circle cx="56" cy="49" r="8" fill="none" stroke="#ff5722" stroke-width="1.5" opacity="0.5"/>
+  </g>
+  
+  <!-- Indicateur GPS superposé en bas à droite -->
+  <circle cx="148" cy="148" r="28" fill="#ff5722" opacity="0.95"/>
+  <path d="M 148 135 L 153 148 L 148 152 L 143 148 Z" fill="white" stroke="white" stroke-width="0.5"/>
 </svg>

@@ -1,13 +1,31 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <defs>
-    <mask id="mask512">
-      <rect width="512" height="512" fill="white"/>
-      <circle cx="256" cy="256" r="10" fill="black"/>
-    </mask>
+    <linearGradient id="maskgrad512" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0b61a4;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0d7bb8;stop-opacity:1" />
+    </linearGradient>
   </defs>
-  <g mask="url(#mask512)">
-    <rect width="512" height="512" fill="white"/>
-    <path d="M 256 60 L 340 180 L 480 180 L 360 270 L 440 390 L 256 300 L 72 390 L 152 270 L 32 180 L 172 180 Z" fill="#0b61a4" stroke="#0b61a4" stroke-width="4"/>
-    <circle cx="256" cy="256" r="140" fill="none" stroke="#0b61a4" stroke-width="4" opacity="0.3"/>
+  
+  <!-- Fond plein -->
+  <rect width="512" height="512" fill="url(#maskgrad512)"/>
+  
+  <!-- Icône de carte grande version optimisée pour maskable -->
+  <g transform="translate(60, 60)">
+    <!-- Régions stylisées -->
+    <path d="M 60 50 Q 90 35 110 56 Q 116 70 96 85 Q 76 75 60 80 Z" fill="#ffc107" opacity="0.9"/>
+    <path d="M 140 40 Q 170 45 180 70 Q 175 97 150 100 Q 130 85 140 60 Z" fill="#ff9800" opacity="0.85"/>
+    <path d="M 70 120 Q 55 145 75 165 Q 105 170 115 145 Q 100 130 80 125 Z" fill="#f44336" opacity="0.8"/>
+    <path d="M 150 130 Q 175 135 190 160 Q 180 190 155 185 Q 145 160 150 140 Z" fill="#2196f3" opacity="0.9"/>
+    <path d="M 100 120 Q 130 140 145 135 Q 150 170 115 185 Q 95 160 100 140 Z" fill="#4caf50" opacity="0.85"/>
+    
+    <!-- Point de géolocalisation -->
+    <circle cx="112" cy="100" r="12" fill="#ff5722"/>
+    <circle cx="112" cy="100" r="18" fill="none" stroke="#ff5722" stroke-width="3" opacity="0.6"/>
+  </g>
+  
+  <!-- Marqueur GPS proéminent en bas -->
+  <g transform="translate(180, 320)">
+    <path d="M 48 0 L 72 48 L 48 72 L 24 48 Z" fill="#ff5722" stroke="white" stroke-width="4"/>
+    <circle cx="48" cy="48" r="12" fill="white"/>
   </g>
 </svg>

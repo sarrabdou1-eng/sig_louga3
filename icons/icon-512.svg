@@ -4,11 +4,38 @@
       <stop offset="0%" style="stop-color:#0b61a4;stop-opacity:1" />
       <stop offset="100%" style="stop-color:#0d7bb8;stop-opacity:1" />
     </linearGradient>
+    <style>
+      .shadow { filter: drop-shadow(0 4px 8px rgba(0,0,0,0.2)); }
+    </style>
   </defs>
+  
+  <!-- Fond dégradé -->
   <rect width="512" height="512" fill="url(#grad512)"/>
-  <circle cx="256" cy="256" r="180" fill="white" opacity="0.15"/>
-  <path d="M 256 80 L 320 160 L 420 160 L 340 230 L 380 360 L 256 290 L 132 360 L 172 230 L 92 160 L 192 160 Z" fill="white" stroke="white" stroke-width="2"/>
-  <circle cx="256" cy="256" r="120" fill="none" stroke="white" stroke-width="4" opacity="0.3"/>
-  <text x="256" y="430" font-size="40" font-weight="bold" text-anchor="middle" fill="white">SIG LOUGA</text>
-  <text x="256" y="475" font-size="20" text-anchor="middle" fill="white" opacity="0.8">Cartographie Interactive</text>
+  
+  <!-- Cercle de fond -->
+  <circle cx="256" cy="256" r="200" fill="white" opacity="0.1"/>
+  
+  <!-- Icône de carte grande version -->
+  <g class="shadow" transform="translate(90, 80)">
+    <!-- Contour de carte -->
+    <rect x="0" y="0" width="252" height="220" rx="28" ry="28" fill="white" opacity="0.96" stroke="white" stroke-width="2"/>
+    
+    <!-- Régions stylisées avec détails -->
+    <path d="M 50 60 Q 85 45 110 65 Q 118 80 95 100 Q 70 90 50 95 Z" fill="#ffc107" opacity="0.85"/>
+    <path d="M 140 50 Q 175 55 185 80 Q 180 115 145 125 Q 132 105 140 70 Z" fill="#ff9800" opacity="0.8"/>
+    <path d="M 60 140 Q 45 165 65 195 Q 105 205 115 170 Q 105 150 75 145 Z" fill="#f44336" opacity="0.75"/>
+    <path d="M 160 150 Q 190 155 205 190 Q 195 225 155 220 Q 148 190 160 160 Z" fill="#2196f3" opacity="0.85"/>
+    <path d="M 100 145 Q 120 160 135 155 Q 140 175 118 185 Q 100 175 100 160 Z" fill="#4caf50" opacity="0.8"/>
+    
+    <!-- Point de géolocalisation au centre -->
+    <circle cx="126" cy="110" r="12" fill="#ff5722"/>
+    <circle cx="126" cy="110" r="18" fill="none" stroke="#ff5722" stroke-width="3" opacity="0.4"/>
+  </g>
+  
+  <!-- Indicateur GPS superposé en bas à droite (grand) -->
+  <circle cx="405" cy="405" r="65" fill="#ff5722" opacity="0.95" stroke="white" stroke-width="3"/>
+  <path d="M 405 365 L 420 405 L 405 425 L 390 405 Z" fill="white" stroke="white" stroke-width="1"/>
+  
+  <!-- Texte de marque -->
+  <text x="256" y="440" font-size="48" font-weight="bold" text-anchor="middle" fill="white" font-family="Arial, sans-serif">SIG Louga</text>
 </svg>
